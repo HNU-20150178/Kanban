@@ -8,6 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class CorsConfig implements WebMvcConfigurer {
     
     @Override
+    // 모든 origin,http method,header,쿠키, Authorization 인증 헤더, TLS client certificates(증명서)를 내포하는 자격 인증에 응답허용
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins("http://localhost:8080")
