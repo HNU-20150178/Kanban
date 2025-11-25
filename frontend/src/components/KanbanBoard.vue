@@ -51,19 +51,19 @@
         
         <form @submit.prevent="saveTask">
           <div class="form-group">
-            <label>제목</label>
-            <input v-model="taskForm.title" required class="form-input" placeholder="업무 제목을 입력하세요" />
+            <label for="title">제목</label>
+            <input v-model="taskForm.title" id="title" required class="form-input" placeholder="업무 제목을 입력하세요" />
           </div>
           
           <div class="form-group">
-            <label>설명</label>
-            <textarea v-model="taskForm.description" rows="4" class="form-input" placeholder="업무 설명을 입력하세요"></textarea>
+            <label for="description">설명</label>
+            <textarea v-model="taskForm.description" id="description" rows="4" class="form-input" placeholder="업무 설명을 입력하세요"></textarea>
           </div>
           
           <div class="form-row">
             <div class="form-group">
-              <label>상태</label>
-              <select v-model="taskForm.status" required class="form-input">
+              <label for="status">상태</label>
+              <select v-model="taskForm.status" id="status" required class="form-input">
                 <option v-for="status in statuses" :key="status.value" :value="status.value">
                   {{ status.label }}
                 </option>
@@ -71,8 +71,8 @@
             </div>
             
             <div class="form-group">
-              <label>우선순위</label>
-              <select v-model="taskForm.priority" class="form-input">
+              <label for="priority">우선순위</label>
+              <select v-model="taskForm.priority" id="priority" class="form-input">
                 <option value="LOW">낮음</option>
                 <option value="MEDIUM">보통</option>
                 <option value="HIGH">높음</option>
@@ -81,8 +81,8 @@
           </div>
           
           <div class="form-group">
-            <label>담당자</label>
-            <input v-model="taskForm.assignee" class="form-input" placeholder="담당자 이름" />
+            <label for="assignee">담당자</label>
+            <input v-model="taskForm.assignee" id="assignee" class="form-input" placeholder="담당자 이름" />
           </div>
           
           <div class="modal-actions">
