@@ -1,5 +1,8 @@
 <template>
   <div class="kanban-board">
+    <AppToast ref="AppToast" />
+    <LoadingSpinner :loading="loading" :message="loadingMessage" />
+    
     <h1>칸반 보드</h1>
     
     <div class="board-header">
@@ -30,7 +33,7 @@
                 </div>
               </div>
               
-              <p class="task-description">{{ element.description }}</p>
+              <p v-if="element.description" class="task-description">{{ element.description }}</p>
               
               <div class="task-footer">
                 <span v-if="element.assignee" class="assignee">{{ element.assignee }}</span>
@@ -94,12 +97,16 @@
 
 <script>
 import draggable from 'vuedraggable';
-import api from '../services/api.js';
+import api from '../services/api';
+import AppToast from './AppToast.vue';
+import LoadingSpinner from './LoadingSpinner.vue';
 
 export default {
   name: 'KanbanBoard',
   components: {
-    draggable
+    draggable,
+    AppToast,
+    LoadingSpinner
   },
   data() {
     return {
@@ -119,7 +126,9 @@ export default {
         assignee: '',
         position: 0
       },
-      editingTaskId: null
+      editingTaskId: null,
+      loading: false,
+      loadingMessage: ''
     };
   },
   mounted() {
@@ -127,12 +136,36 @@ export default {
   },
   methods: {
     async loadTasks() {
+      this.loading = true;
+      this.loadingMessage = '업무를 불러오는 중...';
+      
       try {
         const response = await api.getAllTasks();
-        this.tasks = response.data;
+        
+        if (Array.isArray(response.data)) {
+          this.tasks = response.data;
+          if (this.tasks.length === 0) {
+            this.$refs.AppToast.info('등록된 업무가 없습니다. 새 업무를 추가해보세요!');
+          }
+        } else {
+          console.error('예상치 못한 응답 형식:', response.data);
+          this.tasks = [];
+          this.$refs.AppToast.warning('업무 목록을 불러왔으나 형식이 올바르지 않습니다.');
+        }
       } catch (error) {
         console.error('업무 로드 실패:', error);
-        alert('업무를 불러오는데 실패했습니다.');
+        this.tasks = [];
+        
+        if (error.response) {
+          this.$refs.AppToast.error(`서버 오류: ${error.response.status}`);
+        } else if (error.request) {
+          this.$refs.AppToast.error('서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인하세요.');
+        } else {
+          this.$refs.AppToast.error('업무를 불러오는데 실패했습니다.');
+        }
+      } finally {
+        this.loading = false;
+        this.loadingMessage = '';
       }
     },
     
@@ -141,20 +174,35 @@ export default {
     },
     
     async onDragEnd(event) {
-      const movedTask = this.tasks.find(t => t.id === event.item.__draggable_context.element.id);
-      if (!movedTask) return;
+      const movedTask = event.item.__draggable_context?.element;
+      if (!movedTask) {
+        this.$refs.AppToast.warning('업무 정보를 찾을 수 없습니다.');
+        return;
+      }
       
       const columnElement = event.to.closest('.column');
       const statusHeader = columnElement.querySelector('.column-header h2').textContent.trim();
       const newStatus = this.statuses.find(s => s.label === statusHeader)?.value;
       
+      if (!newStatus) {
+        this.$refs.AppToast.error('상태를 확인할 수 없습니다.');
+        return;
+      }
+      
+      this.loading = true;
+      this.loadingMessage = '업무를 이동하는 중...';
+      
       try {
         await api.moveTask(movedTask.id, newStatus, event.newIndex);
         await this.loadTasks();
+        this.$refs.AppToast.success('업무가 이동되었습니다.');
       } catch (error) {
         console.error('업무 이동 실패:', error);
-        alert('업무 이동에 실패했습니다.');
+        this.$refs.AppToast.error('업무 이동에 실패했습니다.');
         await this.loadTasks();
+      } finally {
+        this.loading = false;
+        this.loadingMessage = '';
       }
     },
     
@@ -162,7 +210,7 @@ export default {
       this.editingTaskId = task.id;
       this.taskForm = {
         title: task.title,
-        description: task.description,
+        description: task.description || '',
         status: task.status,
         priority: task.priority || 'MEDIUM',
         assignee: task.assignee || '',
@@ -171,30 +219,50 @@ export default {
       this.showEditModal = true;
     },
     
-    async deleteTaskConfirm(task) {
+    deleteTaskConfirm(task) {
       if (confirm(`"${task.title}" 업무를 삭제하시겠습니까?`)) {
-        try {
-          await api.deleteTask(task.id);
-          await this.loadTasks();
-        } catch (error) {
-          console.error('업무 삭제 실패:', error);
-          alert('업무 삭제에 실패했습니다.');
-        }
+        this.deleteTask(task.id);
+      }
+    },
+    
+    async deleteTask(id) {
+      this.loading = true;
+      this.loadingMessage = '업무를 삭제하는 중...';
+      
+      try {
+        await api.deleteTask(id);
+        await this.loadTasks();
+        this.$refs.AppToast.success('업무가 삭제되었습니다.');
+      } catch (error) {
+        console.error('업무 삭제 실패:', error);
+        this.$refs.AppToast.error('업무 삭제에 실패했습니다.');
+      } finally {
+        this.loading = false;
+        this.loadingMessage = '';
       }
     },
     
     async saveTask() {
+      this.loading = true;
+      this.loadingMessage = this.showEditModal ? '업무를 수정하는 중...' : '업무를 생성하는 중...';
+      
       try {
         if (this.showEditModal) {
           await api.updateTask(this.editingTaskId, this.taskForm);
+          this.$refs.AppToast.success('업무가 수정되었습니다.');
         } else {
           await api.createTask(this.taskForm);
+          this.$refs.AppToast.success('업무가 생성되었습니다.');
         }
         await this.loadTasks();
         this.closeModal();
       } catch (error) {
         console.error('업무 저장 실패:', error);
-        alert('업무 저장에 실패했습니다.');
+        const action = this.showEditModal ? '수정' : '생성';
+        this.$refs.AppToast.error(`업무 ${action}에 실패했습니다.`);
+      } finally {
+        this.loading = false;
+        this.loadingMessage = '';
       }
     },
     
