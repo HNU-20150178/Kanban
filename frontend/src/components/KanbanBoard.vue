@@ -174,6 +174,13 @@ export default {
     },
     
     async onDragEnd(event) {
+      console.log("Full drag event object:", event);
+      console.log("event.item (DOM element):", event.item);
+      if (event.item) {
+          console.log("event.item.__draggable_context:", event.item.__draggable_context);
+          console.log("event.item.__draggable_context?.element:", event.item.__draggable_context?.element);
+      }
+
       const movedTask = event.item.__draggable_context?.element;
       if (!movedTask) {
         this.$refs.AppToast.warning('업무 정보를 찾을 수 없습니다.');

@@ -24,10 +24,10 @@ export default {
   computed: {
     icon() {
       const icons = {
-        success: 'ok',
-        error: 'error',
-        warning: 'warning',
-        info: 'info'
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
       };
       return icons[this.type] || icons.info;
     }
