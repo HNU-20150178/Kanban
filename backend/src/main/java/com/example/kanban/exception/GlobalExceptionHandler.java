@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .status(500)
-                .message("예상치 못한 서버 내부 오류가 발생했습니다.")
+                .message("예상치 못한 서버 내부 오류가 발생했습니다. 관리자에게 문의하십시오")
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
