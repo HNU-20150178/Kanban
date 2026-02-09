@@ -13,7 +13,6 @@
 - 드래그앤드롭을 통한 업무 이동
 - 상태 관리 (TODO, IN_PROGRESS, DONE)
 - 우선순위 설정 (LOW, MEDIUM, HIGH)
-- 담당자 지정
 - CORS 설정
 
 - Toast, loading 설정

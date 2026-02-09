@@ -10,7 +10,12 @@
     </div>
 
     <div class="board-columns">
-      <div v-for="status in statuses" :key="status.value" class="column">
+      <div 
+        v-for="status in statuses" 
+        :key="status.value" 
+        class="column"
+        :data-status="status.value"
+      >
         <div class="column-header">
           <h2>{{ status.label }}</h2>
           <span class="count">{{ getTasksByStatus(status.value).length }}</span>
@@ -22,6 +27,7 @@
           @end="onDragEnd"
           class="task-list"
           item-key="id"
+          :data-status="status.value"
         >
           <template #item="{ element }">
             <div class="task-card" :class="'priority-' + (element.priority || 'MEDIUM').toLowerCase()">
@@ -173,40 +179,99 @@ export default {
       return this.tasks.filter(task => task.status === status);
     },
     
+    /**
+     * 드래그앤드롭 로직
+     * 실패 시 자동 롤백
+     */
     async onDragEnd(event) {
-      console.log("Full drag event object:", event);
-      console.log("event.item (DOM element):", event.item);
-      if (event.item) {
-          console.log("event.item.__draggable_context:", event.item.__draggable_context);
-          console.log("event.item.__draggable_context?.element:", event.item.__draggable_context?.element);
-      }
+      console.log('=== 드래그앤드롭 이벤트 시작 ===');
+      console.log('event.item:', event.item);
+      console.log('event.from:', event.from);
+      console.log('event.to:', event.to);
+      console.log('event.oldIndex:', event.oldIndex);
+      console.log('event.newIndex:', event.newIndex);
 
+      // 1. 이동된 태스크 정보 추출
       const movedTask = event.item.__draggable_context?.element;
+      
       if (!movedTask) {
+        console.error('이동된 태스크를 찾을 수 없습니다.');
         this.$refs.AppToast.warning('업무 정보를 찾을 수 없습니다.');
         return;
       }
-      
-      const columnElement = event.to.closest('.column');
-      const statusHeader = columnElement.querySelector('.column-header h2').textContent.trim();
-      const newStatus = this.statuses.find(s => s.label === statusHeader)?.value;
-      
-      if (!newStatus) {
-        this.$refs.AppToast.error('상태를 확인할 수 없습니다.');
+
+      // data-status 속성으로 상태 확인
+      const oldStatus = event.from.dataset.status;
+      const newStatus = event.to.dataset.status;
+      const newPosition = event.newIndex;
+
+      console.log('movedTask:', movedTask);
+      console.log('oldStatus:', oldStatus);
+      console.log('newStatus:', newStatus);
+      console.log('newPosition:', newPosition);
+
+      // 같은 위치로 이동한 경우 (의미 없는 이동)
+      if (oldStatus === newStatus && event.oldIndex === event.newIndex) {
+        console.log('같은 위치로 이동 - 무시');
         return;
       }
-      
+
+      // 백업 데이터 저장
+      const taskBackup = {
+        id: movedTask.id,
+        status: movedTask.status,
+        position: movedTask.position
+      };
+
+      console.log('백업 데이터:', taskBackup);
+
+      // 즉시 UI 업데이트
+      // 사용자는 즉각적인 피드백을 받음
+      const taskIndex = this.tasks.findIndex(t => t.id === movedTask.id);
+      if (taskIndex !== -1) {
+        this.tasks[taskIndex].status = newStatus;
+        this.tasks[taskIndex].position = newPosition;
+      }
+
+      // 로딩 표시 (백그라운드에서 진행)
       this.loading = true;
       this.loadingMessage = '업무를 이동하는 중...';
-      
+
       try {
-        await api.moveTask(movedTask.id, newStatus, event.newIndex);
+        // API 호출
+        console.log('API 호출: moveTask', movedTask.id, newStatus, newPosition);
+        await api.moveTask(movedTask.id, newStatus, newPosition);
+        
+        // 전체 새로고침 대신 부분 업데이트후 서버에서 최신 데이터 가져오기
         await this.loadTasks();
+        
         this.$refs.AppToast.success('업무가 이동되었습니다.');
+        console.log('=== 드래그앤드롭 성공 ===');
+        
       } catch (error) {
         console.error('업무 이동 실패:', error);
-        this.$refs.AppToast.error('업무 이동에 실패했습니다.');
+        
+        // 실패 시 자동 롤백
+        const taskIndex = this.tasks.findIndex(t => t.id === taskBackup.id);
+        if (taskIndex !== -1) {
+          this.tasks[taskIndex].status = taskBackup.status;
+          this.tasks[taskIndex].position = taskBackup.position;
+        }
+        
+        // 서버 상태와 동기화
         await this.loadTasks();
+        
+        // 사용자 친화적인 에러 메시지
+        if (error.response) {
+          this.$refs.AppToast.error(`업무 이동 실패: ${error.response.data.message || '서버 오류'}`);
+        } else if (error.request) {
+          this.$refs.AppToast.error('서버 연결 실패. 네트워크를 확인해주세요.');
+        } else {
+          this.$refs.AppToast.error('업무 이동에 실패했습니다.');
+        }
+        
+        console.log('=== 드래그앤드롭 실패 (롤백 완료) ===');
+        
       } finally {
         this.loading = false;
         this.loadingMessage = '';
@@ -378,6 +443,12 @@ h1 {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   cursor: move;
   border-left: 4px solid #ddd;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .task-card.priority-high {

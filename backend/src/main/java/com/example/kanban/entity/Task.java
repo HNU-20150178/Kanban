@@ -20,7 +20,7 @@ public class Task {
     
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "task_seq")
-    @SequenceGenerator(name = "task_seq", sequenceName = "TASK_SEQ", allocationSize = 1)
+    @SequenceGenerator(name = "task_seq", sequenceName = "TASK_SEQ", allocationSize = 1) // db의 increment by 1 과 동일시
     private Long id;
     
     @Column(nullable = false, length = 200)
