@@ -239,7 +239,6 @@ export default {
 
       try {
         // API 호출
-        console.log('API 호출: moveTask', movedTask.id, newStatus, newPosition);
         await api.moveTask(movedTask.id, newStatus, newPosition);
         
         // 전체 새로고침 대신 부분 업데이트후 서버에서 최신 데이터 가져오기
