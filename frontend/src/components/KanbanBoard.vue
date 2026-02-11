@@ -258,7 +258,12 @@ export default {
         }
         
         // 서버 상태와 동기화
-        await this.loadTasks();
+        try {
+          await this.loadTasks();
+        } catch (error) {
+          console.error('서버 동기화 실패:', error);
+        }
+        
         
         // 사용자 친화적인 에러 메시지
         if (error.response) {

@@ -20,25 +20,30 @@ public class TaskController {
     private final TaskService taskService;
     
     @GetMapping
+    // 모든 업무 조회
     public ResponseEntity<List<TaskDTO>> getAllTasks() {
         return ResponseEntity.ok(taskService.getAllTasks());
     }
     
     @GetMapping("/status/{status}")
+    // 상태별 업무 조회
     public ResponseEntity<List<TaskDTO>> getTasksByStatus(@PathVariable TaskStatus status) {
         return ResponseEntity.ok(taskService.getTasksByStatus(status));
     }
     
+    // 업무 생성
     @PostMapping
     public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskDTO taskDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.createTask(taskDTO));
     }
     
+    // 업무 수정
     @PatchMapping("/{id}")
     public ResponseEntity<TaskDTO> updateTask(@PathVariable Long id, @Valid @RequestBody TaskDTO taskDTO) {
         return ResponseEntity.ok(taskService.updateTask(id, taskDTO));
     }
     
+    // 업무 이동 (드래그앤드롭)
     @PatchMapping("/{id}/move")
     public ResponseEntity<Void> moveTask(
             @PathVariable Long id,
@@ -47,6 +52,7 @@ public class TaskController {
     return ResponseEntity.ok().build();
     }
     
+    // 업무 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);

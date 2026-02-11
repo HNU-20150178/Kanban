@@ -27,7 +27,7 @@ export default {
 
   // 업무 수정
   updateTask(id, task) {
-    return api.put(`/tasks/${id}`, task);
+    return api.patch(`/tasks/${id}`, task);
   },
 
   // 업무 이동
